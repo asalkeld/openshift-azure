@@ -49,23 +49,23 @@
 {{- /* LoadBalancer Service fronting the API server */}}
         {
             "type": "Microsoft.Network/publicIPAddresses",
-            "apiVersion": "2016-03-30",
+            "apiVersion": "2018-07-01",
             "location": "{{ .ContainerService.Location | js }}",
             "name": "ip-apiserver",
             "properties": {
-                "publicIPAllocationMethod": "Dynamic",
+                "publicIPAllocationMethod": "Static",
                 "idleTimeoutInMinutes": 15,
                 "dnsSettings": {
                     "domainNameLabel": "{{ .Derived.MasterLBCNamePrefix .ContainerService | js }}"
                 }
             },
             "sku": {
-                "name": "Basic"
+                "name": "Standard"
             }
         },
         {
             "type": "Microsoft.Network/loadBalancers",
-            "apiVersion": "2016-03-30",
+            "apiVersion": "2018-07-01",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/publicIPAddresses', 'ip-apiserver')]"
             ],
@@ -126,7 +126,7 @@
                 ]
             },
             "sku": {
-                "name": "Basic"
+                "name": "Standard"
             }
         },
         {
@@ -223,6 +223,7 @@
 {{- end }}
             "properties": {
                 "overprovision": false,
+                "singlePlacementGroup": false,
                 "upgradePolicy": {
                     "mode": "Manual"
                 },
