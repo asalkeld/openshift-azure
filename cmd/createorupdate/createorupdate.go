@@ -136,13 +136,14 @@ func acceptMarketplaceAgreement(ctx context.Context, cs *api.OpenShiftManagedClu
 		return nil
 	}
 
-	var clients, err = azureclient.NewAzureClients(ctx, cs, pluginConfig)
+	authorizer, err := azureclient.NewAuthorizerFromCtx(ctx)
 	if err != nil {
 		return err
 	}
 
+	mpc := azureclient.NewMarketPlaceAgreementsClient(cs.Properties.AzProfile.SubscriptionID, authorizer, pluginConfig)
 	log.Info("checking marketplace agreement")
-	terms, err := clients.MarketPlaceAgreements.Get(ctx, cs.Config.ImagePublisher, cs.Config.ImageOffer, cs.Config.ImageSKU)
+	terms, err := mpc.Get(ctx, cs.Config.ImagePublisher, cs.Config.ImageOffer, cs.Config.ImageSKU)
 	if err != nil {
 		return err
 	}
@@ -154,7 +155,7 @@ func acceptMarketplaceAgreement(ctx context.Context, cs *api.OpenShiftManagedClu
 	terms.AgreementProperties.Accepted = to.BoolPtr(true)
 
 	log.Info("accepting marketplace agreement")
-	_, err = clients.MarketPlaceAgreements.Create(ctx, cs.Config.ImagePublisher, cs.Config.ImageOffer, cs.Config.ImageSKU, terms)
+	_, err = mpc.Create(ctx, cs.Config.ImagePublisher, cs.Config.ImageOffer, cs.Config.ImageSKU, terms)
 	return err
 }
 

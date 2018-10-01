@@ -19,24 +19,20 @@ func Deploy(ctx context.Context, cs *api.OpenShiftManagedCluster, i initialize.I
 		return err
 	}
 
-	clients, err := azureclient.NewAzureClients(ctx, cs, config)
+	authorizer, err := azureclient.NewAuthorizerFromCtx(ctx)
 	if err != nil {
 		return err
 	}
 
+	deploymentClient := azureclient.NewDeploymentsClient(cs.Properties.AzProfile.SubscriptionID, authorizer, config)
+
 	log.Info("applying arm template deployment")
-	future, err := clients.Deployments.CreateOrUpdate(ctx, cs.Properties.AzProfile.ResourceGroup, "azuredeploy", resources.Deployment{
+	_, err = deploymentClient.CreateOrUpdate(ctx, cs.Properties.AzProfile.ResourceGroup, "azuredeploy", resources.Deployment{
 		Properties: &resources.DeploymentProperties{
 			Template: t,
 			Mode:     resources.Incremental,
 		},
 	})
-	if err != nil {
-		return err
-	}
-
-	log.Info("waiting for arm template deployment to complete")
-	err = future.WaitForCompletionRef(ctx, clients.Deployments.Client)
 	if err != nil {
 		return err
 	}
