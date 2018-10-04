@@ -1,10 +1,12 @@
-hash: 9a10906a24553a17f67b4710549760a47037f09b1800dce3d1bb002230fbb3a0
-updated: 2018-09-11T13:32:57.890776496+02:00
+hash: 78d6dd4de27b3e25ad321163c56760197cf189d55bed2d57cca13cd9fb64cb2f
+updated: 2018-10-04T10:34:33.901872053+10:00
 imports:
 - name: github.com/Azure/azure-sdk-for-go
   version: 4e8cbbfb1aeab140cd0fa97fd16b64ee18c3ca6a
   subpackages:
+  - profiles/latest/marketplaceordering/mgmt/marketplaceordering
   - services/compute/mgmt/2018-06-01/compute
+  - services/marketplaceordering/mgmt/2015-06-01/marketplaceordering
   - services/preview/operationalinsights/mgmt/2015-11-01-preview/operationalinsights
   - services/resources/mgmt/2018-05-01/resources
   - services/storage/mgmt/2018-02-01/storage
@@ -48,6 +50,10 @@ imports:
   - sortkeys
 - name: github.com/golang/glog
   version: 44145f04b68cf362d9c4df2182967c2275eaefed
+- name: github.com/golang/mock
+  version: c34cdb4725f4c3844d095133c6e40e448b86589b
+  subpackages:
+  - gomock
 - name: github.com/golang/protobuf
   version: 1643683e1b54a9e88ad26d98f81400c8c9d9f4f9
   subpackages:
@@ -141,7 +147,6 @@ imports:
   - http2/hpack
   - idna
   - lex/httplex
-  - websocket
 - name: golang.org/x/sys
   version: 95c6576299259db960f6c5b9b69ea52422860fce
   subpackages:
@@ -197,7 +202,6 @@ imports:
   - core/v1
   - events/v1beta1
   - extensions/v1beta1
-  - imagepolicy/v1alpha1
   - networking/v1
   - policy/v1beta1
   - rbac/v1
