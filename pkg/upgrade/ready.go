@@ -37,7 +37,7 @@ func masterWaitForReady(ctx context.Context, cs *api.OpenShiftManagedCluster, no
 	}, ctx.Done())
 }
 
-func masterIsReady(kc *kubernetes.Clientset, nodeName string) (bool, error) {
+func masterIsReady(kc kubernetes.Interface, nodeName string) (bool, error) {
 	ready, err := nodeIsReady(kc, nodeName)
 	if !ready || err != nil {
 		return ready, err
@@ -89,7 +89,7 @@ func nodeWaitForReady(ctx context.Context, cs *api.OpenShiftManagedCluster, node
 	return setUnschedulable(ctx, kc, nodeName, false)
 }
 
-func nodeIsReady(kc *kubernetes.Clientset, nodeName string) (bool, error) {
+func nodeIsReady(kc kubernetes.Interface, nodeName string) (bool, error) {
 	node, err := kc.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
 	switch {
 	case err == nil:
