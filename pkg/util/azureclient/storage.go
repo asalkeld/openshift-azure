@@ -3,6 +3,7 @@ package azureclient
 import (
 	"context"
 	"errors"
+	"io"
 
 	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2018-02-01/storage"
 	azstorage "github.com/Azure/azure-sdk-for-go/storage"
@@ -45,8 +46,34 @@ func (az azStorageClient) GetBlobService() azstorage.BlobStorageClient {
 	return az.azs.GetBlobService()
 }
 
-func (az azStorageClient) GetContainerReference(name string) *azstorage.Container {
-	return az.bs.GetContainerReference(name)
+// NewStorageContainerReference purely for unit tests
+func NewStorageContainerReference(name string) StorageContainerReference {
+	return azStorageContainerReference{}
+}
+
+func (az azStorageClient) GetContainerReference(name string) StorageContainerReference {
+	return azStorageContainerReference{container: az.bs.GetContainerReference(name)}
+}
+
+func (az azStorageContainerReference) CreateIfNotExists(options *azstorage.CreateContainerOptions) (bool, error) {
+	return az.container.CreateIfNotExists(options)
+}
+
+func (az azStorageContainerReference) GetBlobReference(name string) StorageBlob {
+	return azStorageBlob{blob: az.container.GetBlobReference(name)}
+}
+
+// NewStorageBlob purely for unit tests
+func NewStorageBlob() StorageBlob {
+	return azStorageBlob{}
+}
+
+func (az azStorageBlob) CreateBlockBlobFromReader(blob io.Reader, options *azstorage.PutBlobOptions) error {
+	return az.blob.CreateBlockBlobFromReader(blob, options)
+}
+
+func (az azStorageBlob) Get(options *azstorage.GetBlobOptions) (io.ReadCloser, error) {
+	return az.blob.Get(options)
 }
 
 func (az azAccountsClient) GetStorageAccount(ctx context.Context, resourceGroup, typeTag string) (map[string]string, error) {

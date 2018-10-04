@@ -17,7 +17,9 @@ type Initializer interface {
 }
 
 type simpleInitializer struct {
-	pluginConfig api.PluginConfig
+	pluginConfig   api.PluginConfig
+	accountsClient azureclient.AccountsClient
+	storageClient  azureclient.StorageClient
 }
 
 var _ Initializer = &simpleInitializer{}
@@ -29,33 +31,35 @@ func NewSimpleInitializer(entry *logrus.Entry, pluginConfig api.PluginConfig) In
 }
 
 func (si *simpleInitializer) InitializeCluster(ctx context.Context, cs *api.OpenShiftManagedCluster) error {
-	authorizer, err := azureclient.NewAuthorizerFromCtx(ctx)
-	if err != nil {
-		return err
+	var err error
+	if si.accountsClient == nil {
+		authorizer, err := azureclient.NewAuthorizerFromCtx(ctx)
+		if err != nil {
+			return err
+		}
+
+		si.accountsClient = azureclient.NewAccountsClient(cs.Properties.AzProfile.SubscriptionID, authorizer, si.pluginConfig)
 	}
+	if si.storageClient == nil {
+		keys, err := si.accountsClient.ListKeys(ctx, cs.Properties.AzProfile.ResourceGroup, cs.Config.ConfigStorageAccount)
+		if err != nil {
+			return err
+		}
 
-	accountClient := azureclient.NewAccountsClient(cs.Properties.AzProfile.SubscriptionID, authorizer, si.pluginConfig)
-	keys, err := accountClient.ListKeys(ctx, cs.Properties.AzProfile.ResourceGroup, cs.Config.ConfigStorageAccount)
-	if err != nil {
-		return err
+		si.storageClient, err = azureclient.NewStorageClient(cs.Config.ConfigStorageAccount, *(*keys.Keys)[0].Value)
+		if err != nil {
+			return err
+		}
 	}
-
-	storageClient, err := azureclient.NewStorageClient(cs.Config.ConfigStorageAccount, *(*keys.Keys)[0].Value)
-	if err != nil {
-		return err
-	}
-
-	bsc := storageClient.GetBlobService()
-
 	// etcd data container
-	c := bsc.GetContainerReference("etcd")
+	c := si.storageClient.GetContainerReference("etcd")
 	_, err = c.CreateIfNotExists(nil)
 	if err != nil {
 		return err
 	}
 
 	// cluster config container
-	c = bsc.GetContainerReference("config")
+	c = si.storageClient.GetContainerReference("config")
 	_, err = c.CreateIfNotExists(nil)
 	if err != nil {
 		return err

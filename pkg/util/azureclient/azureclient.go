@@ -2,6 +2,7 @@ package azureclient
 
 import (
 	"context"
+	"io"
 	"net/http"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/marketplaceordering/mgmt/marketplaceordering"
@@ -50,7 +51,7 @@ type azAccountsClient struct {
 // StorageClient is minimal inferface for azure StorageClient
 type StorageClient interface {
 	// mirrored methods
-	GetContainerReference(name string) *azstorage.Container
+	GetContainerReference(name string) StorageContainerReference
 	GetBlobService() azstorage.BlobStorageClient
 }
 
@@ -58,6 +59,28 @@ type StorageClient interface {
 type azStorageClient struct {
 	azs azstorage.Client
 	bs  azstorage.BlobStorageClient
+}
+
+// StorageContainerReference is the minimal interface for azure Container
+type StorageContainerReference interface {
+	CreateIfNotExists(options *azstorage.CreateContainerOptions) (bool, error)
+	GetBlobReference(name string) StorageBlob
+}
+
+// azStorageContainerReference implements Container.
+type azStorageContainerReference struct {
+	container *azstorage.Container
+}
+
+// StorageBlob is the minimal interface for azure Blob
+type StorageBlob interface {
+	CreateBlockBlobFromReader(blob io.Reader, options *azstorage.PutBlobOptions) error
+	Get(options *azstorage.GetBlobOptions) (io.ReadCloser, error)
+}
+
+// azStorageBlob implements Blob.
+type azStorageBlob struct {
+	blob *azstorage.Blob
 }
 
 // MarketPlaceAgreementsClient is minimal interface for azure MarketPlaceAgreementsClient
