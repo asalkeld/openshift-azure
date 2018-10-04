@@ -11,6 +11,16 @@ clean:
 
 test: unit e2e
 
+AZ_SOURCEDIR=pkg/util/azureclient
+AZ_MOCKDIR=pkg/util/mocks/mock_azureclient
+AZ_SOURCE_FILES=pkg/util/azureclient/azureclient.go
+AZ_MOCK_FILES=$(patsubst $(AZ_SOURCEDIR)/%.go, $(AZ_MOCKDIR)/%.go, $(AZ_SOURCE_FILES))
+
+$(AZ_MOCKDIR)/%.go: $(AZ_SOURCEDIR)/%.go
+	mockgen -source $< -destination $@
+
+generate-mocks: $(AZ_MOCK_FILES)
+
 generate:
 	go generate ./...
 
@@ -63,4 +73,4 @@ e2e-image: e2e-bin
 e2e-push: e2e-image
 	docker push $(E2E_IMAGE)
 
-.PHONY: clean sync-image sync-push verify unit e2e e2e-bin
+.PHONY: clean sync-image sync-push verify unit e2e e2e-bin generate-mocks
