@@ -10,7 +10,7 @@ import (
 	"github.com/openshift/openshift-azure/pkg/util/azureclient/storage"
 )
 
-func (si *simpleUpgrader) InitializeCluster(ctx context.Context, cs *api.OpenShiftManagedCluster) error {
+func (si *simpleUpgrader) Initialize(ctx context.Context, cs *api.OpenShiftManagedCluster) error {
 	authorizer, err := azureclient.NewAuthorizerFromContext(ctx)
 	if err != nil {
 		return err

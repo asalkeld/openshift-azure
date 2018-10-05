@@ -10,7 +10,7 @@ import (
 )
 
 type Upgrader interface {
-	InitializeCluster(ctx context.Context, cs *api.OpenShiftManagedCluster) error
+	Initialize(ctx context.Context, cs *api.OpenShiftManagedCluster) error
 	Deploy(ctx context.Context, cs *api.OpenShiftManagedCluster, azuredeploy []byte, deployFn api.DeployFn) error
 	Update(ctx context.Context, cs *api.OpenShiftManagedCluster, azuredeploy []byte, deployFn api.DeployFn) error
 	HealthCheck(ctx context.Context, cs *api.OpenShiftManagedCluster) error

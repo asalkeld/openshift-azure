@@ -100,7 +100,7 @@ func (p *plugin) GenerateARM(ctx context.Context, cs *api.OpenShiftManagedCluste
 
 func (p *plugin) InitializeCluster(ctx context.Context, cs *api.OpenShiftManagedCluster) error {
 	log.Info("initializing cluster")
-	return p.clusterUpgrader.InitializeCluster(ctx, cs)
+	return p.clusterUpgrader.Initialize(ctx, cs)
 }
 
 func (p *plugin) HealthCheck(ctx context.Context, cs *api.OpenShiftManagedCluster) error {

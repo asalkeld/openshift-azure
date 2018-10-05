@@ -19,7 +19,7 @@ func (u *simpleUpgrader) Deploy(ctx context.Context, cs *api.OpenShiftManagedClu
 		return err
 	}
 
-	err = u.InitializeCluster(ctx, cs)
+	err = u.Initialize(ctx, cs)
 	if err != nil {
 		return err
 	}
