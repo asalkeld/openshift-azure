@@ -85,7 +85,15 @@ var daemonsetWhitelist = []struct {
 	},
 }
 
-func WaitForNodes(ctx context.Context, cs *api.OpenShiftManagedCluster, kc *kubernetes.Clientset) error {
+func (u *simpleUpgrader) WaitForNodes(ctx context.Context, cs *api.OpenShiftManagedCluster) error {
+	kc, err := managedcluster.ClientsetFromV1ConfigAndWait(ctx, cs.Config.AdminKubeconfig)
+	if err != nil {
+		return err
+	}
+	return waitForNodes(ctx, cs, kc)
+}
+
+func waitForNodes(ctx context.Context, cs *api.OpenShiftManagedCluster, kc *kubernetes.Clientset) error {
 	config := api.PluginConfig{AcceptLanguages: []string{"en-us"}}
 	authorizer, err := azureclient.NewAuthorizerFromContext(ctx)
 	if err != nil {
@@ -94,13 +102,13 @@ func WaitForNodes(ctx context.Context, cs *api.OpenShiftManagedCluster, kc *kube
 	vmc := azureclient.NewVirtualMachineScaleSetVMsClient(cs.Properties.AzProfile.SubscriptionID, authorizer, config.AcceptLanguages)
 
 	for _, role := range []api.AgentPoolProfileRole{api.AgentPoolProfileRoleMaster, api.AgentPoolProfileRoleInfra, api.AgentPoolProfileRoleCompute} {
-		vms, err := ListVMs(ctx, cs, vmc, role)
+		vms, err := listVMs(ctx, cs, vmc, role)
 		if err != nil {
 			return err
 		}
 		for _, vm := range vms {
 			log.Infof("waiting for %s to be ready", *vm.VirtualMachineScaleSetVMProperties.OsProfile.ComputerName)
-			err = WaitForReady(ctx, cs, role, *vm.VirtualMachineScaleSetVMProperties.OsProfile.ComputerName)
+			err = waitForReady(ctx, cs, role, *vm.VirtualMachineScaleSetVMProperties.OsProfile.ComputerName)
 			if err != nil {
 				return err
 			}
@@ -111,7 +119,16 @@ func WaitForNodes(ctx context.Context, cs *api.OpenShiftManagedCluster, kc *kube
 }
 
 // WaitForInfraServices verifies daemonsets, statefulsets
-func WaitForInfraServices(ctx context.Context, kc *kubernetes.Clientset) error {
+func (u *simpleUpgrader) WaitForInfraServices(ctx context.Context, cs *api.OpenShiftManagedCluster) error {
+	kc, err := managedcluster.ClientsetFromV1ConfigAndWait(ctx, cs.Config.AdminKubeconfig)
+	if err != nil {
+		return err
+	}
+	return waitForInfraServices(ctx, kc)
+}
+
+// waitForInfraServices verifies daemonsets, statefulsets
+func waitForInfraServices(ctx context.Context, kc *kubernetes.Clientset) error {
 	for _, app := range daemonsetWhitelist {
 		log.Infof("checking daemonset %s/%s", app.Namespace, app.Name)
 
@@ -165,7 +182,7 @@ func WaitForInfraServices(ctx context.Context, kc *kubernetes.Clientset) error {
 	return nil
 }
 
-func WaitForReady(ctx context.Context, cs *api.OpenShiftManagedCluster, role api.AgentPoolProfileRole, nodeName string) error {
+func waitForReady(ctx context.Context, cs *api.OpenShiftManagedCluster, role api.AgentPoolProfileRole, nodeName string) error {
 	switch role {
 	case api.AgentPoolProfileRoleMaster:
 		return masterWaitForReady(ctx, cs, nodeName)

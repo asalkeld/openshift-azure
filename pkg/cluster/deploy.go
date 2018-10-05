@@ -4,30 +4,36 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2018-05-01/resources"
+
 	"github.com/openshift/openshift-azure/pkg/api"
-	"github.com/openshift/openshift-azure/pkg/util/managedcluster"
+	"github.com/openshift/openshift-azure/pkg/log"
+	"github.com/openshift/openshift-azure/pkg/util/azureclient"
 )
 
-func (u *simpleUpgrader) Deploy(ctx context.Context, cs *api.OpenShiftManagedCluster, azuredeploy []byte, deployFn api.DeployFn) error {
+func (u *simpleUpgrader) DefaultDeploy(ctx context.Context, cs *api.OpenShiftManagedCluster, azuredeploy []byte) error {
 	var azuretemplate map[string]interface{}
 	err := json.Unmarshal(azuredeploy, &azuretemplate)
 	if err != nil {
 		return err
 	}
-	err = deployFn(ctx, azuretemplate)
+	log.Info("applying arm template deployment")
+	authorizer, err := azureclient.NewAuthorizerFromContext(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = u.Initialize(ctx, cs)
-	if err != nil {
-		return err
-	}
-	kc, err := managedcluster.ClientsetFromV1ConfigAndWait(ctx, cs.Config.AdminKubeconfig)
+	deployments := azureclient.NewDeploymentsClient(cs.Properties.AzProfile.SubscriptionID, authorizer, u.pluginConfig.AcceptLanguages)
+	future, err := deployments.CreateOrUpdate(ctx, cs.Properties.AzProfile.ResourceGroup, "azuredeploy", resources.Deployment{
+		Properties: &resources.DeploymentProperties{
+			Template: azuretemplate,
+			Mode:     resources.Incremental,
+		},
+	})
 	if err != nil {
 		return err
 	}
 
-	// ensure that all nodes are ready
-	return WaitForNodes(ctx, cs, kc)
+	log.Info("waiting for arm template deployment to complete")
+	return future.WaitForCompletionRef(ctx, deployments.Client())
 }

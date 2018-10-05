@@ -14,10 +14,23 @@ const (
 	ContextKeyTenantID     ContextKey = "TenantID"
 )
 
-// DeployFn makes it possible to plug in different logic to the deploy.
-// The implementor must initiate a deployment of the given template using
-// mode resources.Incremental and wait for it to complete.
-type DeployFn func(context.Context, map[string]interface{}) error
+// Deployer interface describes the functions to call (and in the order below) to
+// deploy a cluster for the first time.
+type Deployer interface {
+	DefaultDeployment(ctx context.Context, cs *OpenShiftManagedCluster, azuredeploy []byte) error
+	Initialize(ctx context.Context, cs *OpenShiftManagedCluster) error
+	WaitForCompletion(ctx context.Context, cs *OpenShiftManagedCluster) error
+}
+
+// Updater interface describes the functions to call (and in the order below) to
+// update a cluster.
+type Updater interface {
+	GetNodesPreUpdate(ctx context.Context, cs *OpenShiftManagedCluster) (map[string]struct{}, error)
+	DefaultDeployment(ctx context.Context, cs *OpenShiftManagedCluster, azuredeploy []byte) error
+	Initialize(ctx context.Context, cs *OpenShiftManagedCluster) error
+	WaitForCompletion(ctx context.Context, cs *OpenShiftManagedCluster, nodes map[string]struct{}) error
+	UpdateInPlace(ctx context.Context, cs *OpenShiftManagedCluster) error
+}
 
 // PluginConfig is passed into NewPlugin
 type PluginConfig struct {
@@ -46,13 +59,13 @@ type Plugin interface {
 	// for an Openshift cluster.
 	GenerateConfig(ctx context.Context, cs *OpenShiftManagedCluster) error
 
+	// GenerateARM creates an ARM based off of the config.
 	GenerateARM(ctx context.Context, cs *OpenShiftManagedCluster, isUpdate bool) ([]byte, error)
 
-	InitializeCluster(ctx context.Context, cs *OpenShiftManagedCluster) error
-
-	HealthCheck(ctx context.Context, cs *OpenShiftManagedCluster) error
+	Deployer() Deployer
+	Updater() Updater
 
 	// CreateOrUpdate either deploys or runs the update depending on the isUpdate argument
 	// this will call the deployer.
-	CreateOrUpdate(ctx context.Context, cs *OpenShiftManagedCluster, azuredeploy []byte, isUpdate bool, deployer DeployFn) error
+	CreateOrUpdate(ctx context.Context, cs *OpenShiftManagedCluster, azuredeploy []byte, isUpdate bool) error
 }

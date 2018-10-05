@@ -11,10 +11,13 @@ import (
 
 type Upgrader interface {
 	Initialize(ctx context.Context, cs *api.OpenShiftManagedCluster) error
-	Deploy(ctx context.Context, cs *api.OpenShiftManagedCluster, azuredeploy []byte, deployFn api.DeployFn) error
-	Update(ctx context.Context, cs *api.OpenShiftManagedCluster, azuredeploy []byte, deployFn api.DeployFn) error
-	HealthCheck(ctx context.Context, cs *api.OpenShiftManagedCluster) error
+	DefaultDeploy(ctx context.Context, cs *api.OpenShiftManagedCluster, azuredeploy []byte) error
+	GetNodesPreUpdate(ctx context.Context, cs *api.OpenShiftManagedCluster) (map[string]struct{}, error)
 	WaitForInfraServices(ctx context.Context, cs *api.OpenShiftManagedCluster) error
+	WaitForNodes(ctx context.Context, cs *api.OpenShiftManagedCluster) error
+	WaitForNewNodes(ctx context.Context, cs *api.OpenShiftManagedCluster, nodes map[string]struct{}) error
+	UpdateInPlace(ctx context.Context, cs *api.OpenShiftManagedCluster) error
+	WaitForConsole(ctx context.Context, cs *api.OpenShiftManagedCluster) error
 }
 
 type simpleUpgrader struct {

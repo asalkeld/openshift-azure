@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2018-05-01/resources"
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/ghodss/yaml"
 	"github.com/sirupsen/logrus"
@@ -106,29 +105,7 @@ func createOrUpdate(ctx context.Context, oc *v20180930preview.OpenShiftManagedCl
 		return nil, err
 	}
 
-	deployer := func(ctx context.Context, azuretemplate map[string]interface{}) error {
-		log.Info("applying arm template deployment")
-		authorizer, err := azureclient.NewAuthorizerFromContext(ctx)
-		if err != nil {
-			return err
-		}
-
-		deployments := azureclient.NewDeploymentsClient(cs.Properties.AzProfile.SubscriptionID, authorizer, config.AcceptLanguages)
-		future, err := deployments.CreateOrUpdate(ctx, cs.Properties.AzProfile.ResourceGroup, "azuredeploy", resources.Deployment{
-			Properties: &resources.DeploymentProperties{
-				Template: azuretemplate,
-				Mode:     resources.Incremental,
-			},
-		})
-		if err != nil {
-			return err
-		}
-
-		log.Info("waiting for arm template deployment to complete")
-		return future.WaitForCompletionRef(ctx, deployments.Client())
-	}
-
-	err = p.CreateOrUpdate(ctx, cs, azuredeploy, oldCs != nil, deployer)
+	err = p.CreateOrUpdate(ctx, cs, azuredeploy, oldCs != nil)
 	if err != nil {
 		return nil, err
 	}

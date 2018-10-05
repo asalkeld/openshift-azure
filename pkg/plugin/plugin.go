@@ -14,10 +14,11 @@ import (
 )
 
 type plugin struct {
-	entry           *logrus.Entry
-	config          api.PluginConfig
-	clusterUpgrader cluster.Upgrader
-	armGenerator    arm.Generator
+	entry        *logrus.Entry
+	config       api.PluginConfig
+	updater      api.Updater
+	deployer     api.Deployer
+	armGenerator arm.Generator
 }
 
 var _ api.Plugin = &plugin{}
@@ -26,10 +27,11 @@ var _ api.Plugin = &plugin{}
 func NewPlugin(entry *logrus.Entry, pluginConfig *api.PluginConfig) api.Plugin {
 	log.New(entry)
 	return &plugin{
-		entry:           entry,
-		config:          *pluginConfig,
-		clusterUpgrader: cluster.NewSimpleUpgrader(entry, pluginConfig),
-		armGenerator:    arm.NewSimpleGenerator(entry),
+		entry:        entry,
+		config:       *pluginConfig,
+		deployer:     NewSimpleDeployer(entry, pluginConfig),
+		updater:      NewSimpleUpdater(entry, pluginConfig),
+		armGenerator: arm.NewSimpleGenerator(entry),
 	}
 }
 
@@ -98,34 +100,132 @@ func (p *plugin) GenerateARM(ctx context.Context, cs *api.OpenShiftManagedCluste
 	return p.armGenerator.Generate(ctx, cs, isUpdate)
 }
 
-func (p *plugin) InitializeCluster(ctx context.Context, cs *api.OpenShiftManagedCluster) error {
-	log.Info("initializing cluster")
-	return p.clusterUpgrader.Initialize(ctx, cs)
+func (p *plugin) Deployer() api.Deployer {
+	return p.deployer
 }
 
-func (p *plugin) HealthCheck(ctx context.Context, cs *api.OpenShiftManagedCluster) error {
-	log.Info("starting health check")
-	return p.clusterUpgrader.HealthCheck(ctx, cs)
+func (p *plugin) Updater() api.Updater {
+	return p.updater
 }
 
-func (p *plugin) CreateOrUpdate(ctx context.Context, cs *api.OpenShiftManagedCluster, azuredeploy []byte, isUpdate bool, deployFn api.DeployFn) error {
-	var err error
+func (p *plugin) CreateOrUpdate(ctx context.Context, cs *api.OpenShiftManagedCluster, azuredeploy []byte, isUpdate bool) error {
 	if isUpdate {
 		log.Info("starting update")
-		err = p.clusterUpgrader.Update(ctx, cs, azuredeploy, deployFn)
-	} else {
-		log.Info("starting deploy")
-		err = p.clusterUpgrader.Deploy(ctx, cs, azuredeploy, deployFn)
+		nodes, err := p.Updater().GetNodesPreUpdate(ctx, cs)
+		if err != nil {
+			return err
+		}
+		err = p.Updater().DefaultDeployment(ctx, cs, azuredeploy)
+		if err != nil {
+			return err
+		}
+		err = p.Updater().Initialize(ctx, cs)
+		if err != nil {
+			return err
+		}
+		err = p.Updater().WaitForCompletion(ctx, cs, nodes)
+		if err != nil {
+			return err
+		}
+		return p.Updater().UpdateInPlace(ctx, cs)
 	}
+
+	log.Info("starting deploy")
+	err := p.Deployer().DefaultDeployment(ctx, cs, azuredeploy)
+	if err != nil {
+		return err
+	}
+	err = p.Deployer().Initialize(ctx, cs)
+	if err != nil {
+		return err
+	}
+	return p.Deployer().WaitForCompletion(ctx, cs)
+}
+
+type simpleDeployer struct {
+	pluginConfig    api.PluginConfig
+	clusterUpgrader cluster.Upgrader
+}
+
+var _ api.Deployer = &simpleDeployer{}
+
+// NewSimpleDeployer create a new Upgrade instance.
+func NewSimpleDeployer(entry *logrus.Entry, pluginConfig *api.PluginConfig) api.Deployer {
+	log.New(entry)
+	return &simpleDeployer{
+		pluginConfig:    *pluginConfig,
+		clusterUpgrader: cluster.NewSimpleUpgrader(entry, pluginConfig),
+	}
+}
+
+func (d *simpleDeployer) DefaultDeployment(ctx context.Context, cs *api.OpenShiftManagedCluster, azuredeploy []byte) error {
+	return d.clusterUpgrader.DefaultDeploy(ctx, cs, azuredeploy)
+}
+
+func (d *simpleDeployer) Initialize(ctx context.Context, cs *api.OpenShiftManagedCluster) error {
+	return d.clusterUpgrader.Initialize(ctx, cs)
+}
+
+func (d *simpleDeployer) WaitForCompletion(ctx context.Context, cs *api.OpenShiftManagedCluster) error {
+	// 1.
+	err := d.clusterUpgrader.WaitForNodes(ctx, cs)
 	if err != nil {
 		return err
 	}
 
-	// Wait for infrastructure services to be healthy
-	err = p.clusterUpgrader.WaitForInfraServices(ctx, cs)
+	// 2.
+	err = d.clusterUpgrader.WaitForInfraServices(ctx, cs)
+	if err != nil {
+		return err
+	}
+	// 3
+	return d.clusterUpgrader.WaitForConsole(ctx, cs)
+}
+
+type simpleUpgrader struct {
+	pluginConfig    api.PluginConfig
+	clusterUpgrader cluster.Upgrader
+}
+
+var _ api.Updater = &simpleUpgrader{}
+
+// NewSimpleUpdater create a new Upgrade instance.
+func NewSimpleUpdater(entry *logrus.Entry, pluginConfig *api.PluginConfig) api.Updater {
+	log.New(entry)
+	return &simpleUpgrader{
+		pluginConfig:    *pluginConfig,
+		clusterUpgrader: cluster.NewSimpleUpgrader(entry, pluginConfig),
+	}
+}
+
+func (d *simpleUpgrader) GetNodesPreUpdate(ctx context.Context, cs *api.OpenShiftManagedCluster) (map[string]struct{}, error) {
+	return d.clusterUpgrader.GetNodesPreUpdate(ctx, cs)
+}
+
+func (d *simpleUpgrader) DefaultDeployment(ctx context.Context, cs *api.OpenShiftManagedCluster, azuredeploy []byte) error {
+	return d.clusterUpgrader.DefaultDeploy(ctx, cs, azuredeploy)
+}
+
+func (d *simpleUpgrader) Initialize(ctx context.Context, cs *api.OpenShiftManagedCluster) error {
+	return d.clusterUpgrader.Initialize(ctx, cs)
+}
+
+func (d *simpleUpgrader) UpdateInPlace(ctx context.Context, cs *api.OpenShiftManagedCluster) error {
+	return d.clusterUpgrader.UpdateInPlace(ctx, cs)
+}
+
+func (d *simpleUpgrader) WaitForCompletion(ctx context.Context, cs *api.OpenShiftManagedCluster, nodes map[string]struct{}) error {
+	// 1.
+	err := d.clusterUpgrader.WaitForNewNodes(ctx, cs, nodes)
 	if err != nil {
 		return err
 	}
 
-	return p.HealthCheck(ctx, cs)
+	// 2.
+	err = d.clusterUpgrader.WaitForInfraServices(ctx, cs)
+	if err != nil {
+		return err
+	}
+	// 3
+	return d.clusterUpgrader.WaitForConsole(ctx, cs)
 }
