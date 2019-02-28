@@ -1,5 +1,5 @@
-hash: 2f0929c849972b0d8dab393641ac6c65d139f0bb39b155ea7e6780bd462827f9
-updated: 2019-02-19T17:31:47.538456901-06:00
+hash: b79837fbfd7869061763f0107714144a79b2cc9b225134add0762921aaf8f7d2
+updated: 2019-03-01T08:48:38.446434235+10:00
 imports:
 - name: contrib.go.opencensus.io/exporter/ocagent
   version: 00af367e65149ff1f2f4b93bbfbb84fd9297170d
@@ -12,6 +12,7 @@ imports:
   - services/dns/mgmt/2017-10-01/dns
   - services/graphrbac/1.6/graphrbac
   - services/marketplaceordering/mgmt/2015-06-01/marketplaceordering
+  - services/monitor/mgmt/2017-09-01/insights
   - services/network/mgmt/2018-06-01/network
   - services/network/mgmt/2018-07-01/network
   - services/resources/mgmt/2018-05-01/resources
@@ -34,6 +35,10 @@ imports:
   - logger
   - tracing
   - version
+- name: github.com/beorn7/perks
+  version: 3a771d992973f24aa725d07868b467d1ddfceafb
+  subpackages:
+  - quantile
 - name: github.com/census-instrumentation/opencensus-proto
   version: 24333298e36590ea0716598caacc8959fc393c48
   subpackages:
@@ -89,7 +94,7 @@ imports:
   subpackages:
   - gomock
 - name: github.com/golang/protobuf
-  version: aa810b61a9c79d51363740d207bb46cf8e620ed5
+  version: c823c79ea1570fb5ff454033735a8e68575d1d0f
   subpackages:
   - proto
   - protoc-gen-go/descriptor
@@ -203,6 +208,12 @@ imports:
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/prometheus/client_golang
   version: 505eaef017263e299324067d40ca2c48f6a2cf50
+  subpackages:
+  - api
+  - api/prometheus/v1
+  - prometheus
+  - prometheus/internal
+  - prometheus/promhttp
 - name: github.com/prometheus/client_model
   version: fd36f4220a901265f90734c3183c5f0c91daa0b8
   subpackages:
@@ -213,6 +224,10 @@ imports:
   - expfmt
   - internal/bitbucket.org/ww/goautoneg
   - model
+- name: github.com/prometheus/procfs
+  version: a1dba9ce8baed984a2495b658c82687f8157b98f
+  subpackages:
+  - xfs
 - name: github.com/satori/go.uuid
   version: f58768cc1a7a7e77a3bd49e98cdd21419399b6a3
 - name: github.com/sirupsen/logrus
