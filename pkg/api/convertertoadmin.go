@@ -188,6 +188,7 @@ func convertImageConfigToAdmin(in ImageConfig) *admin.ImageConfig {
 		WebConsole:                   &in.WebConsole,
 		Console:                      &in.Console,
 		EtcdBackup:                   &in.EtcdBackup,
+		Canary:                       &in.Canary,
 		GenevaLogging:                &in.GenevaLogging,
 		GenevaTDAgent:                &in.GenevaTDAgent,
 		GenevaStatsd:                 &in.GenevaStatsd,

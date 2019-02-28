@@ -53,6 +53,7 @@ func TestPluginTemplateValidate(t *testing.T) {
 			errors.New(`images.WebConsole cannot be empty`),
 			errors.New(`images.Console cannot be empty`),
 			errors.New(`images.EtcdBackup cannot be empty`),
+			errors.New(`images.Canary cannot be empty`),
 		}
 
 	template := pluginapi.Config{}

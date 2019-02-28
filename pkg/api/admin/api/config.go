@@ -77,6 +77,7 @@ type ImageConfig struct {
 	WebConsole            *string `json:"webConsole,omitempty"`
 	Console               *string `json:"console,omitempty"`
 	EtcdBackup            *string `json:"etcdBackup,omitempty"`
+	Canary                *string `json:"canary,omitempty"`
 
 	// Geneva integration images
 	GenevaLogging *string `json:"genevaLogging,omitempty"`

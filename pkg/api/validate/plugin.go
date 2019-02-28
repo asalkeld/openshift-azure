@@ -159,6 +159,9 @@ func (v *PluginAPIValidator) validatePluginTemplateImages(i *pluginapi.ImageConf
 	if i.EtcdBackup == "" {
 		errs = append(errs, fmt.Errorf("images.EtcdBackup cannot be empty"))
 	}
+	if i.Canary == "" {
+		errs = append(errs, fmt.Errorf("images.Canary cannot be empty"))
+	}
 
 	return errs
 }

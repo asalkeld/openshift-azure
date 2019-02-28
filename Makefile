@@ -15,9 +15,16 @@ ETCDBACKUP_IMAGE ?= quay.io/openshift-on-azure/etcdbackup:$(TAG)
 METRICSBRIDGE_IMAGE ?= quay.io/openshift-on-azure/metricsbridge:$(TAG)
 SYNC_IMAGE ?= quay.io/openshift-on-azure/sync:$(TAG)
 STARTUP_IMAGE ?= quay.io/openshift-on-azure/startup:$(TAG)
+CANARY_IMAGE ?= quay.io/openshift-on-azure/canary:$(TAG)
+
+ALL_BINARIES = azure-controllers e2e-bin etcdbackup sync metricsbridge startup canary
+ALL_IMAGES = $(addsuffix -image, $(ALL_BINARIES))
+ALL_PUSHES = $(addsuffix -push, $(ALL_BINARIES))
+
+IMAGEBUILDER = ${GOPATH}/bin/imagebuilder
 
 # all is the default target to build everything
-all: clean build azure-controllers etcdbackup sync metricsbridge startup e2e-bin
+all: clean build $(ALL_BINARIES)
 
 version:
 	echo ${TAG}
@@ -26,7 +33,7 @@ build: generate
 	go build ./...
 
 clean:
-	rm -f coverage.out azure-controllers etcdbackup sync metricsbridge startup e2e
+	rm -f coverage.out e2e $(ALL_BINARIES)
 
 test: unit e2e
 
@@ -41,9 +48,9 @@ delete:
 	rm -rf _data
 
 azure-controllers: generate
-	go build -ldflags ${LDFLAGS} ./cmd/azure-controllers
+	go build -ldflags ${LDFLAGS} ./cmd/$@
 
-azure-controllers-image: azure-controllers imagebuilder
+azure-controllers-image: azure-controllers $(IMAGEBUILDER)
 	imagebuilder -f images/azure-controllers/Dockerfile -t $(AZURE_CONTROLLERS_IMAGE) .
 
 azure-controllers-push: azure-controllers-image
@@ -52,10 +59,10 @@ azure-controllers-push: azure-controllers-image
 e2e-bin: generate
 	go test -ldflags ${LDFLAGS} -tags e2e -c -o ./e2e ./test/e2e
 
-e2e-image: e2e-bin imagebuilder
+e2e-bin-image: e2e-bin $(IMAGEBUILDER)
 	imagebuilder -f images/e2e/Dockerfile -t $(E2E_IMAGE) .
 
-e2e-push: e2e-image
+e2e-bin-push: e2e-bin-image
 	docker push $(E2E_IMAGE)
 
 recoveretcdcluster: generate
@@ -64,7 +71,7 @@ recoveretcdcluster: generate
 etcdbackup: generate
 	go build -ldflags ${LDFLAGS} ./cmd/etcdbackup
 
-etcdbackup-image: etcdbackup imagebuilder
+etcdbackup-image: etcdbackup $(IMAGEBUILDER)
 	imagebuilder -f images/etcdbackup/Dockerfile -t $(ETCDBACKUP_IMAGE) .
 
 etcdbackup-push: etcdbackup-image
@@ -73,7 +80,7 @@ etcdbackup-push: etcdbackup-image
 metricsbridge:
 	go build -ldflags ${LDFLAGS} ./cmd/metricsbridge
 
-metricsbridge-image: metricsbridge imagebuilder
+metricsbridge-image: metricsbridge $(IMAGEBUILDER)
 	imagebuilder -f images/metricsbridge/Dockerfile -t $(METRICSBRIDGE_IMAGE) .
 
 metricsbridge-push: metricsbridge-image
@@ -82,25 +89,33 @@ metricsbridge-push: metricsbridge-image
 sync: generate
 	go build -ldflags ${LDFLAGS} ./cmd/sync
 
-sync-image: sync imagebuilder
+sync-image: sync $(IMAGEBUILDER)
 	imagebuilder -f images/sync/Dockerfile -t $(SYNC_IMAGE) .
 
 sync-push: sync-image
 	docker push $(SYNC_IMAGE)
 
-all-image: azure-controllers-image e2e-image etcdbackup-image metricsbridge-image sync-image startup-image
+all-image: $(ALL_IMAGES)
 
-all-push: azure-controllers-push e2e-push etcdbackup-push metrics-push sync-push startup-push
+all-push: $(ALL_PUSHES)
 
 startup: generate
 	go build -ldflags ${LDFLAGS} ./cmd/startup
 
-startup-image: startup
-	go get github.com/openshift/imagebuilder/cmd/imagebuilder
+startup-image: startup $(IMAGEBUILDER)
 	imagebuilder -f images/startup/Dockerfile -t $(STARTUP_IMAGE) .
 
 startup-push: startup-image
 	docker push $(STARTUP_IMAGE)
+
+canary:
+	go build -ldflags ${LDFLAGS} ./cmd/$@
+
+canary-image: canary $(IMAGEBUILDER)
+	$(IMAGEBUILDER) -f images/canary/Dockerfile -t $(CANARY_IMAGE) .
+
+canary-push: canary-image
+	docker push $(CANARY_IMAGE)
 
 verify:
 	./hack/validate-generated.sh
@@ -150,8 +165,8 @@ e2e-forceupdate:
 e2e-vnet:
 	FOCUS="\[Vnet\]\[Real\]" TIMEOUT=70m ./hack/e2e.sh
 
-imagebuilder:
+$(IMAGEBUILDER):
 	docker pull registry.access.redhat.com/rhel7:latest
 	go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
 
-.PHONY: clean metricsbridge metricsbridge-image metricsbridge-push sync-image sync-push startup startup-image startup-push verify unit e2e imagebuilder all-image all-push
+.PHONY: clean verify generate unit create delete upgrade e2e all-image all-push $(ALL_PUSHES) $(ALL_IMAGES)

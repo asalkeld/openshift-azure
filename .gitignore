@@ -10,7 +10,7 @@
 /etcdbackup
 /azure-controllers
 /metricsbridge
-/recoveretcdcluster
+/canary
 .vscode
 .idea
 coverage.out

@@ -68,6 +68,7 @@ type ImageConfig struct {
 	WebConsole            string `json:"webConsole,omitempty"`
 	Console               string `json:"console,omitempty"`
 	EtcdBackup            string `json:"etcdBackup,omitempty"`
+	Canary                string `json:"canary,omitempty"`
 
 	// GenevaImagePullSecret defines secret used to pull private Azure images
 	GenevaImagePullSecret []byte `json:"genevaImagePullSecret,omitempty"`
