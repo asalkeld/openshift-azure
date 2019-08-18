@@ -82,7 +82,7 @@ spec:
           subPath: main.sh
       nodeSelector:
         beta.kubernetes.io/os: linux
-        node-role.kubernetes.io/infra: "true"
+        node-role.kubernetes.io/compute: "true"
       serviceAccountName: log-analytics-agent
       tolerations:
       - effect: NoExecute
