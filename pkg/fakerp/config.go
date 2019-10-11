@@ -36,6 +36,7 @@ func GetTestConfig() api.TestConfig {
 		ImageResourceGroup: os.Getenv("IMAGE_RESOURCEGROUP"),
 		ImageResourceName:  os.Getenv("IMAGE_RESOURCENAME"),
 		ArtifactDir:        os.Getenv("ARTIFACTS"),
+		ProxyURL:           os.Getenv("PROXYURL"),
 		ProxyCertificate:   cert,
 	}
 }
