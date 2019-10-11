@@ -1,9 +1,6 @@
 package openshift
 
 import (
-	"net/http"
-	"time"
-
 	servicecatalogv1beta1client "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset/typed/servicecatalog/v1beta1"
 	oappsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
@@ -24,8 +21,8 @@ import (
 	v1 "k8s.io/client-go/tools/clientcmd/api/v1"
 
 	internalapi "github.com/openshift/openshift-azure/pkg/api"
-	"github.com/openshift/openshift-azure/pkg/cluster/kubeclient"
 	"github.com/openshift/openshift-azure/pkg/util/managedcluster"
+	"github.com/openshift/openshift-azure/pkg/util/roundtrippers"
 )
 
 type Client struct {
@@ -76,20 +73,7 @@ func newClientFromKubeConfig(log *logrus.Entry, kc *v1.Config) (*Client, error) 
 		return nil, err
 	}
 
-	restconfig.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		// first, tweak values on the incoming RoundTripper, which we are
-		// relying on being an *http.Transport.
-
-		rt.(*http.Transport).DisableKeepAlives = true
-
-		// now wrap our retryingRoundTripper around the incoming RoundTripper.
-		return &kubeclient.RetryingRoundTripper{
-			Log:          log,
-			RoundTripper: rt,
-			Retries:      5,
-			GetTimeout:   30 * time.Second,
-		}
-	}
+	restconfig.WrapTransport = roundtrippers.NewRetryingRoundTripper(log, true)
 
 	return newClientFromRestConfig(restconfig), nil
 }
