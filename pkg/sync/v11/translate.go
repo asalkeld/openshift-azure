@@ -585,11 +585,11 @@ var translations = map[string][]struct {
 	},
 	"Secret/openshift-azure-logging/log-analytics": {
 		{
-			Path:     jsonpath.MustCompile("$.stringData.'WSID'"),
+			Path:     jsonpath.MustCompile("$.data.'WSID'"),
 			Template: "{{ .ContainerService.Properties.MonitorProfile.WorkspaceID }}",
 		},
 		{
-			Path:     jsonpath.MustCompile("$.stringData.'KEY'"),
+			Path:     jsonpath.MustCompile("$.data.'KEY'"),
 			Template: "{{ .ContainerService.Properties.MonitorProfile.WorkspaceKey }}",
 		},
 	},
