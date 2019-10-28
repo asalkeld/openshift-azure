@@ -2,6 +2,7 @@ package sync
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -25,23 +26,23 @@ func TestLint(t *testing.T) {
 
 		b1, err := ioutil.ReadFile(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s : %v", path, err)
 		}
 
 		u, err := unmarshal(b1)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s : %v", path, err)
 		}
 
 		if err = clean(u); err != nil {
-			return err
+			return fmt.Errorf("%s : %v", path, err)
 		}
 
 		defaults(u)
 
 		b2, err := yaml.Marshal(u.Object)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s : %v", path, err)
 		}
 
 		if _, found := os.LookupEnv("REGENERATE"); !found {
